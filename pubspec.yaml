@@ -1,5 +1,5 @@
 name: eldercare
-description: "A new Flutter project."
+description: "Elderly care companion app with AI assistance"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,10 +9,45 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI
   cupertino_icons: ^1.0.8
-  url_launcher: ^6.2.6
+
+  # Firebase
+  firebase_core: ^2.27.1
+  firebase_auth: ^4.17.9
+  cloud_firestore: ^4.15.9
+  firebase_storage: ^11.6.0       # ✅ ADD THIS - For image upload
+  firebase_messaging: ^14.7.10
+
+  # State Management
+  provider: ^6.1.2
+
+  # Image & File
   image_picker: ^1.1.0
-  intl: ^0.19.0
+  flutter_image_compress: ^2.2.0
+  path: ^1.9.0                    # ✅ ADD THIS - For file path handling
+
+  # Location
+  geolocator: ^11.0.0
+
+  # Notifications
+  flutter_local_notifications: ^17.0.0
+
+  # HTTP
+  http: ^1.2.0                    # ✅ ADD THIS - For AI API calls
+
+  # Utils
+  intl: ^0.20.2
+  shared_preferences: ^2.2.3
+  uuid: ^4.3.3                    # ✅ ADD THIS - For conversation IDs
+  url_launcher: ^6.2.6
+
+  # Optional (but recommended)
+  cached_network_image: ^3.3.1    # ✅ ADD THIS - For better image loading
+  flutter_svg: ^2.0.10            # ✅ ADD THIS - If you need SVG icons
 
 dev_dependencies:
   flutter_test:
@@ -21,6 +56,18 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
+
   assets:
-    - assets/eldercare.png
-    - assets/mu-logo.png
+    - assets/
+    # OR list them individually:
+    # - assets/eldercare.png
+    # - assets/mu-logo.png
+
+  # Optional: Add custom fonts
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: fonts/Roboto-Regular.ttf
+  #       - asset: fonts/Roboto-Bold.ttf
+  #         weight: 700

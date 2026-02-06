@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:eldercare/l10n/app_localizations.dart';
 
 class MedicineTracker extends StatefulWidget {
   @override
@@ -33,6 +34,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     int takenCount = _medicines.where((m) => m.taken).length;
     int totalCount = _medicines.length;
 
@@ -40,11 +42,11 @@ class _MedicineTrackerState extends State<MedicineTracker> {
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Color(0xFF4A90E2),
-        title: Text('Medicine Tracker', style: TextStyle(color: Colors.white)),
+        title: Text(l10n.medicineTracker, style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             icon: Icon(Icons.history, color: Colors.white),
-            onPressed: () => _showMedicineHistory(context),
+            onPressed: () => _showMedicineHistory(context, l10n),
           ),
         ],
       ),
@@ -52,11 +54,11 @@ class _MedicineTrackerState extends State<MedicineTracker> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSummaryCard(takenCount, totalCount),
+            _buildSummaryCard(takenCount, totalCount, l10n),
             Padding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
-                'Today\'s Schedule',
+                l10n.todaysSchedule,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -70,7 +72,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               itemCount: _medicines.length,
               itemBuilder: (context, index) {
-                return _buildMedicineItem(_medicines[index], index);
+                return _buildMedicineItem(_medicines[index], index, l10n);
               },
             ),
             SizedBox(height: 80),
@@ -81,14 +83,14 @@ class _MedicineTrackerState extends State<MedicineTracker> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
-            onPressed: () => _scanPrescription(context),
+            onPressed: () => _scanPrescription(context, l10n),
             backgroundColor: Color(0xFF50C878),
             heroTag: 'scan',
             child: Icon(Icons.camera_alt, size: 28, color: Colors.white),
           ),
           SizedBox(height: 16),
           FloatingActionButton(
-            onPressed: () => _addMedicine(context),
+            onPressed: () => _addMedicine(context, l10n),
             backgroundColor: Color(0xFF4A90E2),
             heroTag: 'add',
             child: Icon(Icons.add, size: 32, color: Colors.white),
@@ -98,7 +100,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
     );
   }
 
-  Widget _buildSummaryCard(int taken, int total) {
+  Widget _buildSummaryCard(int taken, int total, AppLocalizations l10n) {
     return Container(
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.all(20),
@@ -116,7 +118,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
       child: Column(
         children: [
           Text(
-            'Adherence Rate',
+            l10n.adherenceRate,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -130,19 +132,19 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               _buildSummaryItem(
                 icon: Icons.check_circle,
                 value: '$taken',
-                label: 'Taken',
+                label: l10n.taken,
                 color: Color(0xFF50C878),
               ),
               _buildSummaryItem(
                 icon: Icons.pending_actions,
                 value: '${total - taken}',
-                label: 'Missed',
+                label: l10n.missed,
                 color: Color(0xFFE74C3C),
               ),
               _buildSummaryItem(
                 icon: Icons.medical_services,
                 value: '$total',
-                label: 'Total',
+                label: l10n.total,
                 color: Color(0xFF4A90E2),
               ),
             ],
@@ -176,7 +178,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
     );
   }
 
-  Widget _buildMedicineItem(Medicine medicine, int index) {
+  Widget _buildMedicineItem(Medicine medicine, int index, AppLocalizations l10n) {
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(16),
@@ -232,7 +234,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
                   _medicines[index].taken = true;
                 });
               },
-              child: Text('Take', style: TextStyle(color: Color(0xFF50C878), fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(l10n.take, style: TextStyle(color: Color(0xFF50C878), fontWeight: FontWeight.bold, fontSize: 16)),
             )
           else
             Icon(Icons.check_circle_outline, color: Color(0xFF50C878), size: 28),
@@ -241,8 +243,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
     );
   }
 
-  // ... (rest of the methods: _scanPrescription, _addMedicine, _showMedicineHistory) remain the same
-   void _scanPrescription(BuildContext context) async {
+  void _scanPrescription(BuildContext context, AppLocalizations l10n) async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -250,7 +251,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
           children: [
             Icon(Icons.camera_alt, color: Color(0xFF4A90E2)),
             SizedBox(width: 12),
-            Text('Scan Prescription'),
+            Text(l10n.scanPrescription),
           ],
         ),
         content: Column(
@@ -259,7 +260,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
             Icon(Icons.document_scanner, size: 80, color: Color(0xFF4A90E2)),
             SizedBox(height: 16),
             Text(
-              'Take a clear photo of your prescription. The app will automatically extract medicine details.',
+              l10n.scanPrescriptionHelperText,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
@@ -268,7 +269,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('CANCEL', style: TextStyle(fontSize: 16)),
+            child: Text(l10n.cancel, style: TextStyle(fontSize: 16)),
           ),
           ElevatedButton.icon(
             onPressed: () async {
@@ -280,7 +281,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
                 if (image != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Prescription scanned successfully!'),
+                      content: Text(l10n.prescriptionScannedSuccessfully),
                       backgroundColor: Color(0xFF50C878),
                     ),
                   );
@@ -288,14 +289,14 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Camera permission required'),
+                    content: Text(l10n.cameraPermissionRequired),
                     backgroundColor: Color(0xFFE74C3C),
                   ),
                 );
               }
             },
             icon: Icon(Icons.camera),
-            label: Text('SCAN NOW', style: TextStyle(fontSize: 16)),
+            label: Text(l10n.scanNow, style: TextStyle(fontSize: 16)),
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF4A90E2)),
           ),
         ],
@@ -303,7 +304,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
     );
   }
 
-  void _addMedicine(BuildContext context) {
+  void _addMedicine(BuildContext context, AppLocalizations l10n) {
     final _nameController = TextEditingController();
     final _dosageController = TextEditingController();
     final _timeController = TextEditingController();
@@ -311,7 +312,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add Medicine'),
+        title: Text(l10n.addMedicine),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -319,7 +320,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Medicine Name',
+                  labelText: l10n.medicineName,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.medication),
                 ),
@@ -328,7 +329,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               TextField(
                 controller: _dosageController,
                 decoration: InputDecoration(
-                  labelText: 'Dosage (e.g., 100mg)',
+                  labelText: l10n.dosage,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.medical_services),
                 ),
@@ -337,7 +338,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
               TextField(
                 controller: _timeController,
                 decoration: InputDecoration(
-                  labelText: 'Time (e.g., 08:00 AM)',
+                  labelText: l10n.time,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.access_time),
                 ),
@@ -348,7 +349,7 @@ class _MedicineTrackerState extends State<MedicineTracker> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('CANCEL'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -367,40 +368,40 @@ class _MedicineTrackerState extends State<MedicineTracker> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Medicine added successfully!'),
+                    content: Text(l10n.medicineAddedSuccessfully),
                     backgroundColor: Color(0xFF50C878),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF4A90E2)),
-            child: Text('ADD'),
+            child: Text(l10n.add),
           ),
         ],
       ),
     );
   }
 
-  void _showMedicineHistory(BuildContext context) {
+  void _showMedicineHistory(BuildContext context, AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Medicine History'),
+        title: Text(l10n.medicineHistory),
         content: Container(
           width: double.maxFinite,
           child: ListView(
             shrinkWrap: true,
             children: [
-              _buildHistoryItem('Yesterday', '3/3 medicines taken', true),
-              _buildHistoryItem('2 days ago', '2/3 medicines taken', false),
-              _buildHistoryItem('3 days ago', '3/3 medicines taken', true),
+              _buildHistoryItem(l10n.yesterday, l10n.medicinesTaken(3, 3), true),
+              _buildHistoryItem(l10n.daysAgo(2), l10n.medicinesTaken(2, 3), false),
+              _buildHistoryItem(l10n.daysAgo(3), l10n.medicinesTaken(3, 3), true),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('CLOSE'),
+            child: Text(l10n.close),
           ),
         ],
       ),

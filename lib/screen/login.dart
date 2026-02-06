@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -21,6 +22,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       body: SafeArea(
@@ -34,23 +37,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 20),
                 _buildLogo(),
                 SizedBox(height: 20),
-                _buildWelcomeText(),
+                _buildWelcomeText(l10n),
                 SizedBox(height: 32),
-                _buildEmailField(),
+                _buildEmailField(l10n),
                 SizedBox(height: 20),
-                _buildPasswordField(),
+                _buildPasswordField(l10n),
                 SizedBox(height: 16),
-                _buildRememberMeAndForgotPassword(),
+                _buildRememberMeAndForgotPassword(l10n),
                 SizedBox(height: 24),
-                _buildLoginButton(),
+                _buildLoginButton(l10n),
                 SizedBox(height: 20),
-                _buildBiometricButton(),
+                _buildBiometricButton(l10n),
                 SizedBox(height: 16),
                 _buildDivider(),
                 SizedBox(height: 16),
-                _buildGoogleLoginButton(),
+                _buildGoogleLoginButton(l10n),
                 SizedBox(height: 24),
-                _buildSignUpLink(),
+                _buildSignUpLink(l10n),
                 SizedBox(height: 24),
               ],
             ),
@@ -70,12 +73,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildWelcomeText() {
+  Widget _buildWelcomeText(AppLocalizations l10n) {
     return Column(
       children: [
         Center(
           child: Text(
-            'Welcome Back',
+            l10n.welcomeBack,
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -86,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SizedBox(height: 8),
         Center(
           child: Text(
-            'Login to your account',
+            l10n.loginToYourAccount,
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF7F8C8D),
@@ -97,12 +100,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildEmailField() {
+  Widget _buildEmailField(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Email or Phone',
+          l10n.emailOrPhone,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -127,32 +130,17 @@ class _LoginScreenState extends State<LoginScreen> {
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(fontSize: 16, color: Color(0xFF2C3E50)),
             decoration: InputDecoration(
-              hintText: 'Enter email or phone number',
+              hintText: l10n.emailOrPhone,
               hintStyle: TextStyle(fontSize: 14, color: Color(0xFFBDC3C7)),
               prefixIcon: Icon(Icons.person, size: 24, color: Color(0xFF4A90E2)),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFF4A90E2), width: 2),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFFE74C3C), width: 2),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFFE74C3C), width: 2),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              filled: true,
-              fillColor: Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter email or phone';
+                return l10n.pleaseEnterEmail;
               }
               return null;
             },
@@ -162,12 +150,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Password',
+          l10n.password,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -192,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: _obscurePassword,
             style: TextStyle(fontSize: 16, color: Color(0xFF2C3E50)),
             decoration: InputDecoration(
-              hintText: 'Enter password',
+              hintText: l10n.password,
               hintStyle: TextStyle(fontSize: 14, color: Color(0xFFBDC3C7)),
               prefixIcon: Icon(Icons.lock, size: 24, color: Color(0xFF4A90E2)),
               suffixIcon: IconButton(
@@ -211,28 +199,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFF4A90E2), width: 2),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFFE74C3C), width: 2),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFFE74C3C), width: 2),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              filled: true,
-              fillColor: Colors.white,
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter password';
-              }
-              if (value.length < 6) {
-                return 'Password must be at least 6 characters';
+                return l10n.pleaseEnterPassword;
               }
               return null;
             },
@@ -242,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildRememberMeAndForgotPassword() {
+  Widget _buildRememberMeAndForgotPassword(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -266,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(width: 8),
             Text(
-              'Remember Me',
+              l10n.rememberMe,
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF2C3E50),
@@ -275,20 +245,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
         TextButton(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Forgot Password clicked'),
-                backgroundColor: Color(0xFF4A90E2),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            );
-          },
+          onPressed: () {},
           child: Text(
-            'Forgot Password?',
+            l10n.forgotPassword,
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF4A90E2),
@@ -300,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(AppLocalizations l10n) {
     return Container(
       height: 50,
       decoration: BoxDecoration(
@@ -310,31 +269,14 @@ class _LoginScreenState extends State<LoginScreen> {
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF4A90E2).withOpacity(0.4),
-            blurRadius: 15,
-            offset: Offset(0, 8),
-          ),
-        ],
       ),
       child: ElevatedButton(
         onPressed: () {
           if (_formKey.currentState!.validate()) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Text('Login Successful!'),
-                  ],
-                ),
+                content: Text(l10n.loginSuccessful),
                 backgroundColor: Color(0xFF50C878),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
               ),
             );
             Future.delayed(Duration(seconds: 1), () {
@@ -348,14 +290,12 @@ class _LoginScreenState extends State<LoginScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          minimumSize: Size(double.infinity, 50),
         ),
         child: Text(
-          'LOGIN',
+          l10n.login,
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
             color: Colors.white,
           ),
         ),
@@ -363,36 +303,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildBiometricButton() {
+  Widget _buildBiometricButton(AppLocalizations l10n) {
     return Container(
       height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
       child: OutlinedButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Biometric Login clicked'),
-              backgroundColor: Color(0xFF4A90E2),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        },
+        onPressed: () {},
         icon: Icon(Icons.fingerprint, size: 28, color: Color(0xFF4A90E2)),
         label: Text(
-          'Login with Fingerprint',
+          l10n.loginWithFingerprint,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -400,14 +318,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: Color(0xFF4A90E2),
-          padding: EdgeInsets.symmetric(vertical: 14),
           side: BorderSide(color: Color(0xFF4A90E2), width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          minimumSize: Size(double.infinity, 50),
-          backgroundColor: Colors.white,
         ),
       ),
     );
@@ -426,7 +340,6 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(
               color: Color(0xFF7F8C8D),
               fontSize: 12,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -437,36 +350,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildGoogleLoginButton() {
+  Widget _buildGoogleLoginButton(AppLocalizations l10n) {
     return Container(
       height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
       child: OutlinedButton.icon(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Google Login clicked'),
-              backgroundColor: Color(0xFF4A90E2),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        },
+        onPressed: () {},
         icon: Icon(Icons.g_mobiledata, size: 28, color: Color(0xFF2C3E50)),
         label: Text(
-          'Continue with Google',
+          l10n.continueWithGoogle,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -474,25 +365,21 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: Color(0xFF2C3E50),
-          padding: EdgeInsets.symmetric(vertical: 14),
           side: BorderSide(color: Color(0xFFE0E0E0), width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          minimumSize: Size(double.infinity, 50),
-          backgroundColor: Colors.white,
         ),
       ),
     );
   }
 
-  Widget _buildSignUpLink() {
+  Widget _buildSignUpLink(AppLocalizations l10n) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          "Don't have an account? ",
+          l10n.dontHaveAccount,
           style: TextStyle(
             fontSize: 14,
             color: Color(0xFF7F8C8D),
@@ -502,13 +389,8 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () {
             Navigator.pushNamed(context, '/signup');
           },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size(0, 0),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
           child: Text(
-            'Sign Up',
+            l10n.signUp,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,

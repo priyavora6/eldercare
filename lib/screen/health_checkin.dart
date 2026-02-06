@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/l10n/app_localizations.dart';
 
 class HealthCheckIn extends StatefulWidget {
   @override
@@ -9,21 +10,22 @@ class _HealthCheckInState extends State<HealthCheckIn> {
   String? _selectedMood;
   bool _isRecording = false;
 
-  final List<Map<String, dynamic>> _moods = [
-    {'emoji': '😊', 'label': 'Great', 'color': Color(0xFF50C878)},
-    {'emoji': '🙂', 'label': 'Good', 'color': Color(0xFF4A90E2)},
-    {'emoji': '😐', 'label': 'Okay', 'color': Color(0xFFF39C12)},
-    {'emoji': '😔', 'label': 'Sad', 'color': Color(0xFFE67E22)},
-    {'emoji': '😣', 'label': 'Unwell', 'color': Color(0xFFE74C3C)},
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final List<Map<String, dynamic>> _moods = [
+      {'emoji': '😊', 'label': l10n.great, 'color': Color(0xFF50C878)},
+      {'emoji': '🙂', 'label': l10n.good, 'color': Color(0xFF4A90E2)},
+      {'emoji': '😐', 'label': l10n.okay, 'color': Color(0xFFF39C12)},
+      {'emoji': '😔', 'label': l10n.sad, 'color': Color(0xFFE67E22)},
+      {'emoji': '😣', 'label': l10n.unwell, 'color': Color(0xFFE74C3C)},
+    ];
+
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Color(0xFF4A90E2),
-        title: Text('Health Check-in', style: TextStyle(color: Colors.white)),
+        title: Text(l10n.healthCheckIn, style: TextStyle(color: Colors.white)),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
@@ -59,7 +61,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'How are you feeling today?',
+                    l10n.howAreYouFeelingToday,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,
@@ -69,7 +71,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Select your mood below',
+                    l10n.selectYourMood,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -83,7 +85,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
 
             // Mood Selection
             Text(
-              'Your Mood',
+              l10n.yourMood,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -157,7 +159,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
 
             // Voice Recording Section
             Text(
-              'Voice Check',
+              l10n.voiceCheck,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -166,7 +168,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
             ),
             SizedBox(height: 8),
             Text(
-              'Record your voice to check for speech patterns',
+              l10n.recordYourVoice,
               style: TextStyle(fontSize: 16, color: Color(0xFF7F8C8D)),
             ),
             SizedBox(height: 16),
@@ -216,7 +218,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    _isRecording ? 'Recording...' : 'Tap to record',
+                    _isRecording ? l10n.recording : l10n.tapToRecord,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -226,8 +228,8 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                   SizedBox(height: 8),
                   Text(
                     _isRecording
-                        ? 'Speak clearly'
-                        : 'Say: "I am feeling good today"',
+                        ? l10n.speakClearly
+                        : l10n.iAmFeelingGoodToday,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -257,7 +259,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                 ],
               ),
               child: ElevatedButton(
-                onPressed: _selectedMood != null ? _submitCheckIn : null,
+                onPressed: _selectedMood != null ? () => _submitCheckIn(l10n) : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -267,7 +269,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
                   ),
                 ),
                 child: Text(
-                  'SUBMIT CHECK-IN',
+                  l10n.submitCheckIn,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -284,13 +286,14 @@ class _HealthCheckInState extends State<HealthCheckIn> {
   }
 
   void _startRecording() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Icon(Icons.mic, color: Colors.white),
             SizedBox(width: 12),
-            Text('Recording your voice...'),
+            Text(l10n.recordingYourVoice),
           ],
         ),
         backgroundColor: Color(0xFFE74C3C),
@@ -300,16 +303,17 @@ class _HealthCheckInState extends State<HealthCheckIn> {
   }
 
   void _stopRecording() {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Voice recording saved'),
+        content: Text(l10n.voiceRecordingSaved),
         backgroundColor: Color(0xFF50C878),
       ),
     );
   }
 
-  void _submitCheckIn() {
+  void _submitCheckIn(AppLocalizations l10n) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -317,7 +321,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
           children: [
             Icon(Icons.check_circle, color: Color(0xFF50C878), size: 32),
             SizedBox(width: 12),
-            Text('Check-in Complete'),
+            Text(l10n.checkInComplete),
           ],
         ),
         content: Column(
@@ -325,12 +329,12 @@ class _HealthCheckInState extends State<HealthCheckIn> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your health check-in has been recorded!',
+              l10n.yourHealthCheckInHasBeenRecorded,
               style: TextStyle(fontSize: 16),
             ),
             SizedBox(height: 16),
             Text(
-              'Mood: $_selectedMood',
+              l10n.mood(_selectedMood!),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -339,7 +343,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
             ),
             SizedBox(height: 8),
             Text(
-              'Your family has been notified.',
+              l10n.yourFamilyHasBeenNotified,
               style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D)),
             ),
           ],
@@ -353,7 +357,7 @@ class _HealthCheckInState extends State<HealthCheckIn> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF4A90E2),
             ),
-            child: Text('DONE', style: TextStyle(fontSize: 16)),
+            child: Text(l10n.done, style: TextStyle(fontSize: 16)),
           ),
         ],
       ),
