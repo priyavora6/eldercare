@@ -9,10 +9,13 @@ class MedicineModel {
   final DateTime startDate;
   final DateTime? endDate;
   final String prescriptionImageUrl;
-  final String notes;
+  final String? notes;
   final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  // FIX: Added isTaken — tracks if taken today (not stored in Firestore, computed at runtime)
+  bool? isTaken;
 
   MedicineModel({
     required this.medicineId,
@@ -23,10 +26,11 @@ class MedicineModel {
     required this.startDate,
     this.endDate,
     required this.prescriptionImageUrl,
-    required this.notes,
+    this.notes,
     required this.isActive,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
+    this.isTaken = false,
   });
 
   factory MedicineModel.fromJson(Map<String, dynamic> json) {
@@ -36,13 +40,28 @@ class MedicineModel {
       dosage: json['dosage'] ?? '',
       frequency: json['frequency'] ?? '',
       scheduleTime: List<String>.from(json['scheduleTime'] ?? []),
-      startDate: (json['startDate'] as Timestamp).toDate(),
-      endDate: json['endDate'] != null ? (json['endDate'] as Timestamp).toDate() : null,
+
+      // FIX: safe timestamp parsing — won't crash if null
+      startDate: json['startDate'] != null
+          ? (json['startDate'] as Timestamp).toDate()
+          : DateTime.now(),
+      endDate: json['endDate'] != null
+          ? (json['endDate'] as Timestamp).toDate()
+          : null,
+
       prescriptionImageUrl: json['prescriptionImageUrl'] ?? '',
       notes: json['notes'] ?? '',
       isActive: json['isActive'] ?? true,
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
-      updatedAt: (json['updatedAt'] as Timestamp).toDate(),
+
+      // FIX: createdAt/updatedAt can be null right after serverTimestamp() write
+      createdAt: json['createdAt'] != null
+          ? (json['createdAt'] as Timestamp).toDate()
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? (json['updatedAt'] as Timestamp).toDate()
+          : null,
+
+      isTaken: json['isTaken'] ?? false,
     );
   }
 
@@ -56,10 +75,11 @@ class MedicineModel {
       'startDate': Timestamp.fromDate(startDate),
       'endDate': endDate != null ? Timestamp.fromDate(endDate!) : null,
       'prescriptionImageUrl': prescriptionImageUrl,
-      'notes': notes,
+      'notes': notes ?? '',
       'isActive': isActive,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'isTaken': isTaken ?? false,
     };
   }
 }

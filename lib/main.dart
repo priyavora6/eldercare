@@ -1,10 +1,13 @@
-import 'package:eldercare/provider/auth_provider.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:eldercare/l10n/app_localizations.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:eldercare/provider/auth_provider.dart';
+import 'package:eldercare/provider/ai_chat_provider.dart';
+import 'package:eldercare/provider/language_provider.dart';
+import 'package:eldercare/services/translation_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'splash_screen.dart';
 import 'screen/login.dart';
 import 'screen/signup.dart';
@@ -24,106 +27,91 @@ import 'screen/activity_timeline.dart';
 import 'screen/video_call.dart';
 import 'screen/language_selection.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp();
+
+  await dotenv.load(fileName: ".env");
+
+  await TranslationService().initialize();
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  runApp(ElderCareApp());
+
+  runApp(const ElderCareApp());
 }
 
-class ElderCareApp extends StatefulWidget {
-  @override
-  _ElderCareAppState createState() => _ElderCareAppState();
-
-  static void setLocale(BuildContext context, Locale newLocale) {
-    _ElderCareAppState? state = context.findAncestorStateOfType<_ElderCareAppState>();
-    state?.setLocale(newLocale);
-  }
-}
-
-class _ElderCareAppState extends State<ElderCareApp> {
-  Locale? _locale;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLocale();
-  }
-
-  void _loadLocale() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? languageCode = prefs.getString('selected_language');
-    if (languageCode != null) {
-      setState(() {
-        _locale = Locale(languageCode, '');
-      });
-    }
-  }
-
-  void setLocale(Locale locale) {
-    setState(() {
-      _locale = locale;
-    });
-  }
+class ElderCareApp extends StatelessWidget {
+  const ElderCareApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AIChatProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
       ],
-      child: MaterialApp(
-        title: 'ElderCare AI',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primaryColor: Color(0xFF4A90E2),
-          scaffoldBackgroundColor: Color(0xFFF5F7FA),
-          fontFamily: 'System',
-          colorScheme: ColorScheme.light(
-            primary: Color(0xFF4A90E2),
-            secondary: Color(0xFF50C878),
-          ),
-          appBarTheme: AppBarTheme(
-            backgroundColor: Color(0xFF4A90E2),
-            elevation: 0,
-            iconTheme: IconThemeData(color: Colors.white),
-            titleTextStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+      child: Consumer<LanguageProvider>(
+        builder: (context, languageProvider, child) {
+          return MaterialApp(
+            title: 'ElderCare AI',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primaryColor: const Color(0xFF4A90E2),
+              scaffoldBackgroundColor: const Color(0xFFF5F7FA),
+              fontFamily: 'System',
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF4A90E2),
+                secondary: Color(0xFF50C878),
+              ),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFF4A90E2),
+                elevation: 0,
+                iconTheme: IconThemeData(color: Colors.white),
+                titleTextStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-        ),
-        locale: _locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: [
-          Locale('en', ''),
-          Locale('hi', ''),
-          Locale('gu', ''),
-        ],
-        initialRoute: '/',
-        routes: {
-          '/': (context) => SplashScreen(),
-          '/language-selection': (context) => LanguageSelection(),
-          '/login': (context) => LoginScreen(),
-          '/signup': (context) => SignupScreen(),
-          '/onboarding': (context) => OnboardingScreen(),
-          '/home': (context) => HomeDashboard(),
-          '/ai-companion': (context) => AICompanionChat(),
-          '/medicine': (context) => MedicineTracker(),
-          '/health-checkin': (context) => HealthCheckIn(),
-          '/emergency-contacts': (context) => EmergencyContacts(),
-          '/activity-log': (context) => ActivityLog(),
-          '/profile': (context) => ProfileScreen(),
-          '/settings': (context) => SettingsScreen(),
-          '/family-login': (context) => FamilyLogin(),
-          '/family-dashboard': (context) => FamilyDashboard(),
-          '/health-reports': (context) => HealthReports(),
-          '/activity-timeline': (context) => ActivityTimeline(),
-          '/video-call': (context) => VideoCall(),
+            locale: languageProvider.currentLocale,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''), // English
+              Locale('hi', ''), // Hindi
+              Locale('gu', ''), // Gujarati
+            ],
+            initialRoute: '/',
+            routes: {
+              '/': (context) => SplashScreen(),
+              '/language-selection': (context) => LanguageSelection(),
+              '/login': (context) => LoginScreen(),
+              '/signup': (context) => SignupScreen(),
+              '/onboarding': (context) => OnboardingScreen(),
+              '/home': (context) => HomeDashboard(),
+              '/ai-companion': (context) => AICompanionChat(),
+              '/medicine': (context) => MedicineTracker(),
+              '/health-checkin': (context) => HealthCheckIn(),
+              '/emergency-contacts': (context) => EmergencyContacts(),
+              '/activity-log': (context) => ActivityLog(),
+              '/profile': (context) => ProfileScreen(),
+              '/settings': (context) => SettingsScreen(),
+              '/family-login': (context) => FamilyLogin(),
+              '/family-dashboard': (context) => FamilyDashboard(),
+              '/health-reports': (context) => HealthReports(),
+              '/activity-timeline': (context) => ActivityTimeline(),
+              '/video-call': (context) => VideoCall(),
+            },
+          );
         },
       ),
     );

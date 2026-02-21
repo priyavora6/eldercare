@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:eldercare/l10n/app_localizations.dart';
+import '../models/contact_model.dart';
+import '../provider/auth_provider.dart';
+import '../provider/language_provider.dart';
+import '../services/contact_service.dart';
+import '../widgets/translated_text.dart';
 
 class EmergencyContacts extends StatefulWidget {
   @override
@@ -8,66 +13,60 @@ class EmergencyContacts extends StatefulWidget {
 }
 
 class _EmergencyContactsState extends State<EmergencyContacts> {
-  final List<Contact> _contacts = [
-    Contact(
-      name: 'John Doe Jr. (Son)',
-      phone: '+1 234-567-8900',
-      relationship: 'Family',
-      isPrimary: true,
-      icon: Icons.family_restroom,
-    ),
-    Contact(
-      name: 'Mary Doe (Daughter)',
-      phone: '+1 234-567-8901',
-      relationship: 'Family',
-      isPrimary: false,
-      icon: Icons.family_restroom,
-    ),
-    Contact(
-      name: 'Dr. Smith',
-      phone: '+1 234-567-8902',
-      relationship: 'Doctor',
-      isPrimary: false,
-      icon: Icons.medical_services,
-    ),
-    Contact(
-      name: 'Ambulance',
-      phone: '911',
-      relationship: 'Emergency',
-      isPrimary: false,
-      icon: Icons.local_hospital,
-    ),
-  ];
+  final ContactService _contactService = ContactService();
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final userId = authProvider.currentUserId;
+
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Color(0xFF4A90E2),
-        title: Text(l10n.emergencyContacts, style: TextStyle(color: Colors.white)),
+        title: TranslatedText('Emergency Contacts', style: TextStyle(color: Colors.white)),
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: _contacts.length,
-        itemBuilder: (context, index) {
-          return _buildContactCard(_contacts[index], index, l10n);
-        },
-      ),
+      body: userId == null
+          ? Center(child: TranslatedText('Please log in to see your contacts.'))
+          : StreamBuilder<List<Contact>>(
+              stream: _contactService.getContacts(userId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: TranslatedText(
+                      'No contacts found. Add one to get started!',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                final contacts = snapshot.data!;
+
+                return ListView.builder(
+                  padding: EdgeInsets.all(16),
+                  itemCount: contacts.length,
+                  itemBuilder: (context, index) {
+                    return _buildContactCard(contacts[index], userId);
+                  },
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addContact(context, l10n),
+        onPressed: () => userId != null ? _addContact(context, userId) : null,
         backgroundColor: Color(0xFF4A90E2),
         icon: Icon(Icons.add, size: 28),
-        label: Text(
-          l10n.addContact,
+        label: TranslatedText(
+          'Add Contact',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
 
-  Widget _buildContactCard(Contact contact, int index, AppLocalizations l10n) {
+  Widget _buildContactCard(Contact contact, String userId) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       padding: EdgeInsets.all(16),
@@ -98,7 +97,7 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  contact.icon,
+                  _getIconForRelationship(contact.relationship),
                   size: 36,
                   color: Colors.white,
                 ),
@@ -128,8 +127,8 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
                               color: Color(0xFF50C878),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              l10n.primary,
+                            child: TranslatedText(
+                              'Primary',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -148,7 +147,7 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
                       ),
                     ),
                     SizedBox(height: 4),
-                    Text(
+                    TranslatedText(
                       contact.relationship,
                       style: TextStyle(
                         fontSize: 14,
@@ -165,10 +164,10 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _makeCall(contact.phone, l10n),
+                  onPressed: () => _makeCall(contact.phone),
                   icon: Icon(Icons.phone, size: 24),
-                  label: Text(
-                    l10n.call,
+                  label: TranslatedText(
+                    'Call',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -184,10 +183,10 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
               SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _editContact(context, index, l10n),
+                  onPressed: () => _editContact(context, contact, userId),
                   icon: Icon(Icons.edit, size: 24),
-                  label: Text(
-                    l10n.edit,
+                  label: TranslatedText(
+                    'Edit',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -207,29 +206,49 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
     );
   }
 
-  Future<void> _makeCall(String phoneNumber, AppLocalizations l10n) async {
+  IconData _getIconForRelationship(String relationship) {
+    switch (relationship.toLowerCase()) {
+      case 'family':
+        return Icons.family_restroom;
+      case 'doctor':
+        return Icons.medical_services;
+      case 'neighbor':
+        return Icons.house;
+      case 'friend':
+        return Icons.person;
+      default:
+        return Icons.local_hospital;
+    }
+  }
+
+  Future<void> _makeCall(String phoneNumber) async {
     final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(phoneUri)) {
       await launchUrl(phoneUri);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.couldNotOpenPhoneDialer),
+          content: TranslatedText('Could not open phone dialer'),
           backgroundColor: Color(0xFFE74C3C),
         ),
       );
     }
   }
 
-  void _addContact(BuildContext context, AppLocalizations l10n) {
+  void _addContact(BuildContext context, String userId) async {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final nameLabel = await langProvider.translate('Name');
+    final phoneLabel = await langProvider.translate('Phone Number');
+    final relationshipLabel = await langProvider.translate('Relationship');
+
     final _nameController = TextEditingController();
     final _phoneController = TextEditingController();
-    String _relationship = l10n.family;
+    String _relationship = 'Family';
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.addEmergencyContact),
+        title: TranslatedText('Add Emergency Contact'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -237,7 +256,7 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: l10n.name,
+                  labelText: nameLabel,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.person),
                 ),
@@ -246,7 +265,7 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
               TextField(
                 controller: _phoneController,
                 decoration: InputDecoration(
-                  labelText: l10n.phoneNumber,
+                  labelText: phoneLabel,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.phone),
                 ),
@@ -256,15 +275,15 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
               DropdownButtonFormField<String>(
                 value: _relationship,
                 decoration: InputDecoration(
-                  labelText: l10n.relationship,
+                  labelText: relationshipLabel,
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.group),
                 ),
-                items: [l10n.family, l10n.doctor, l10n.neighbor, l10n.friend, l10n.emergency]
+                items: ['Family', 'Doctor', 'Neighbor', 'Friend', 'Emergency']
                     .map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value),
+                    child: TranslatedText(value),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -279,25 +298,22 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel, style: TextStyle(fontSize: 16)),
+            child: TranslatedText('Cancel', style: TextStyle(fontSize: 16)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (_nameController.text.isNotEmpty &&
                   _phoneController.text.isNotEmpty) {
-                setState(() {
-                  _contacts.add(Contact(
-                    name: _nameController.text,
-                    phone: _phoneController.text,
-                    relationship: _relationship,
-                    isPrimary: false,
-                    icon: Icons.person,
-                  ));
-                });
+                final newContact = Contact(
+                  name: _nameController.text,
+                  phone: _phoneController.text,
+                  relationship: _relationship,
+                );
+                await _contactService.addContact(userId, newContact);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(l10n.contactAddedSuccessfully),
+                    content: TranslatedText('Contact added successfully'),
                     backgroundColor: Color(0xFF50C878),
                   ),
                 );
@@ -306,15 +322,19 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF4A90E2),
             ),
-            child: Text(l10n.add, style: TextStyle(fontSize: 16)),
+            child: TranslatedText('Add', style: TextStyle(fontSize: 16)),
           ),
         ],
       ),
     );
   }
 
-  void _editContact(BuildContext context, int index, AppLocalizations l10n) {
-    final contact = _contacts[index];
+  void _editContact(BuildContext context, Contact contact, String userId) async {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final nameLabel = await langProvider.translate('Name');
+    final phoneLabel = await langProvider.translate('Phone Number');
+    final relationshipLabel = await langProvider.translate('Relationship');
+
     final _nameController = TextEditingController(text: contact.name);
     final _phoneController = TextEditingController(text: contact.phone);
     String _relationship = contact.relationship;
@@ -322,7 +342,7 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.editContact),
+        title: TranslatedText('Edit Contact'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -330,30 +350,33 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: l10n.name,
+                  labelText: nameLabel,
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
                 ),
               ),
               SizedBox(height: 12),
               TextField(
                 controller: _phoneController,
                 decoration: InputDecoration(
-                  labelText: l10n.phoneNumber,
+                  labelText: phoneLabel,
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
                 ),
               ),
               SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _relationship,
                 decoration: InputDecoration(
-                  labelText: l10n.relationship,
+                  labelText: relationshipLabel,
                   border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.group),
                 ),
-                items: [l10n.family, l10n.doctor, l10n.neighbor, l10n.friend, l10n.emergency]
+                items: ['Family', 'Doctor', 'Neighbor', 'Friend', 'Emergency']
                     .map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value),
+                    child: TranslatedText(value),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -367,39 +390,36 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              setState(() {
-                _contacts.removeAt(index);
-              });
+            onPressed: () async {
+              await _contactService.deleteContact(userId, contact.id!);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(l10n.contactDeleted),
+                  content: TranslatedText('Contact deleted'),
                   backgroundColor: Color(0xFFE74C3C),
                 ),
               );
             },
-            child: Text(l10n.delete, style: TextStyle(color: Color(0xFFE74C3C))),
+            child: TranslatedText('Delete', style: TextStyle(color: Color(0xFFE74C3C))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancel),
+            child: TranslatedText('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _contacts[index] = Contact(
-                  name: _nameController.text,
-                  phone: _phoneController.text,
-                  relationship: _relationship,
-                  isPrimary: contact.isPrimary,
-                  icon: contact.icon,
-                );
-              });
+            onPressed: () async {
+              final updatedContact = Contact(
+                id: contact.id,
+                name: _nameController.text,
+                phone: _phoneController.text,
+                relationship: _relationship,
+                isPrimary: contact.isPrimary,
+              );
+              await _contactService.updateContact(userId, updatedContact);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(l10n.contactUpdated),
+                  content: TranslatedText('Contact updated'),
                   backgroundColor: Color(0xFF50C878),
                 ),
               );
@@ -407,26 +427,10 @@ class _EmergencyContactsState extends State<EmergencyContacts> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF4A90E2),
             ),
-            child: Text(l10n.save),
+            child: TranslatedText('Save'),
           ),
         ],
       ),
     );
   }
-}
-
-class Contact {
-  final String name;
-  final String phone;
-  final String relationship;
-  final bool isPrimary;
-  final IconData icon;
-
-  Contact({
-    required this.name,
-    required this.phone,
-    required this.relationship,
-    required this.isPrimary,
-    required this.icon,
-  });
 }

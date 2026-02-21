@@ -1,8 +1,10 @@
+
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth; // Aliased
 import 'package:eldercare/services/auth_service.dart';
 import 'package:eldercare/models/user_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -23,19 +25,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _initAuth() {
-    _authService.authStateChanges.listen((User? user) async {
+    _authService.authStateChanges.listen((firebase_auth.User? user) async {
       if (user != null) {
+        // If a user is logged in, fetch their data.
         _currentUser = await _authService.getUserData(user.uid);
         notifyListeners();
       } else {
+        // If no user is logged in, clear the current user data.
         _currentUser = null;
         notifyListeners();
       }
     });
   }
 
-  // Sign up with image
-  Future<bool> signUpWithImage({
+  // Sign up a new user with their email and other details.
+  Future<void> signUpWithEmail({
     required String email,
     required String password,
     required String fullName,
@@ -43,7 +47,7 @@ class AuthProvider extends ChangeNotifier {
     required String userType,
     required DateTime dateOfBirth,
     required String gender,
-    File? profileImage, // NEW
+    File? profileImage,
     String? linkedElderlyId,
     String? relationshipType,
     String? bloodGroup,
@@ -61,24 +65,18 @@ class AuthProvider extends ChangeNotifier {
         userType: userType,
         dateOfBirth: dateOfBirth,
         gender: gender,
-        profileImage: profileImage, // Pass image
+        profileImage: profileImage,
         linkedElderlyId: linkedElderlyId,
         relationshipType: relationshipType,
         bloodGroup: bloodGroup,
       );
-
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
-      notifyListeners();
-      return false;
     }
   }
 
-  // Update profile
+  // Update the current user's profile information.
   Future<bool> updateProfile({
     String? fullName,
     String? phoneNumber,
@@ -101,16 +99,19 @@ class AuthProvider extends ChangeNotifier {
         profileImage: profileImage,
       );
 
+      // After updating, refresh the user data to reflect the changes.
       await refreshUserData();
       return true;
     } catch (e) {
       _errorMessage = e.toString();
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
+  // Log in an existing user.
   Future<bool> login({
     required String email,
     required String password,
@@ -124,24 +125,58 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
-
-      _isLoading = false;
-      notifyListeners();
+      // Save credentials for biometric login
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('biometric_email', email);
+      await prefs.setString('biometric_password', password);
       return true;
     } catch (e) {
       _errorMessage = e.toString();
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
+  // Biometric Login
+  Future<bool> biometricLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('biometric_email');
+    final password = prefs.getString('biometric_password');
+
+    if (email != null && password != null) {
+      return await login(email: email, password: password);
+    }
+    return false;
+  }
+
+  // Sync Google User
+  Future<void> syncGoogleUser(firebase_auth.User user) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _currentUser = await _authService.findOrCreateUser(user);
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Log out the current user.
   Future<void> logout() async {
     await _authService.logout();
     _currentUser = null;
+    // Clear biometric credentials on logout
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('biometric_email');
+    await prefs.remove('biometric_password');
     notifyListeners();
   }
 
+  // Refresh the current user's data from Firestore.
   Future<void> refreshUserData() async {
     if (_currentUser != null) {
       _currentUser = await _authService.getUserData(_currentUser!.accountInfo.userId);

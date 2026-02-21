@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 import 'notifications_settings.dart';
 import 'voice_settings.dart';
 import 'language_settings.dart';
@@ -15,7 +16,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Settings'),
+        title: TranslatedText('Settings'),
       ),
       body: ListView(
         children: [
@@ -74,7 +75,7 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Text(
+      child: TranslatedText(
         title,
         style: TextStyle(
           fontSize: 16,
@@ -88,7 +89,7 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSettingsTile(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Icon(icon, color: Color(0xFF2C3E50)),
-      title: Text(title, style: TextStyle(fontSize: 16, color: Color(0xFF2C3E50))),
+      title: TranslatedText(title, style: TextStyle(fontSize: 16, color: Color(0xFF2C3E50))),
       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF7F8C8D)),
       onTap: onTap,
     );
@@ -114,7 +115,7 @@ class SettingsScreen extends StatelessWidget {
           children: [
             Icon(Icons.logout, color: Colors.white),
             SizedBox(width: 8),
-            Text(
+            TranslatedText(
               'Logout',
               style: TextStyle(
                 fontSize: 18,

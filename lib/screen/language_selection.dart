@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../main.dart';
+import '../provider/language_provider.dart';
 
 class LanguageSelection extends StatefulWidget {
+  const LanguageSelection({Key? key}) : super(key: key);
+
   @override
   _LanguageSelectionState createState() => _LanguageSelectionState();
 }
 
 class _LanguageSelectionState extends State<LanguageSelection> {
-  String? _selectedLanguage;
+  String _selectedLanguage = 'en';
   bool _isLoading = false;
+
+  // ── Same colors as Login ──────────────────────────────
+  static const primaryColor = Color(0xFF2E8B8B);
+  static const backgroundColor = Color(0xFFF4F9F9);
+  static const textDark = Color(0xFF1F2937);
+  static const textLight = Color(0xFF6B7280);
 
   final List<Language> _languages = [
     Language(code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧'),
@@ -20,91 +29,98 @@ class _LanguageSelectionState extends State<LanguageSelection> {
   @override
   void initState() {
     super.initState();
-    _loadSavedLanguage();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCurrentLanguage();
+    });
   }
 
-  Future<void> _loadSavedLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedLanguage = prefs.getString('selected_language');
-    if (savedLanguage != null) {
+  void _loadCurrentLanguage() {
+    try {
+      final provider = Provider.of<LanguageProvider>(context, listen: false);
       setState(() {
-        _selectedLanguage = savedLanguage;
+        _selectedLanguage = provider.currentLanguageCode ?? 'en';
       });
+    } catch (e) {
+      debugPrint('Error loading language: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // ── Header ────────────────────────────────
             Container(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(32),
               child: Column(
                 children: [
-                  SizedBox(height: 20),
-                  // Logo
+                  const SizedBox(height: 20),
+                  // Logo circle — teal gradient
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 110,
+                    height: 110,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF4A90E2), Color(0xFF50C878)],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2E8B8B), Color(0xFF50C878)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF4A90E2).withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: Offset(0, 10),
+                          color: primaryColor.withOpacity(0.3),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.language,
-                      size: 50,
+                    child: const Icon(
+                      Icons.language_rounded,
+                      size: 55,
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 24),
-                  // Title
-                  Text(
+                  const SizedBox(height: 30),
+                  const Text(
                     'Choose Your Language',
                     style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C3E50),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
+                      color: textDark,
+                      letterSpacing: 0.3,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  // Subtitle in multiple languages
-                  Text(
+                  const SizedBox(height: 12),
+                  const Text(
                     'अपनी भाषा चुनें • તમારી ભાષા પસંદ કરો',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF7F8C8D),
+                      fontSize: 15,
+                      color: textLight,
+                      fontWeight: FontWeight.w400,
+                      height: 1.4,
                     ),
                   ),
                 ],
               ),
             ),
 
-            // Language List
+            // ── Language List ──────────────────────────
             Expanded(
               child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0xFFF5F7FA),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
+                    topLeft: Radius.circular(35),
+                    topRight: Radius.circular(35),
                   ),
                 ),
                 child: ListView.builder(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
                   itemCount: _languages.length,
                   itemBuilder: (context, index) {
                     return _buildLanguageCard(_languages[index]);
@@ -113,59 +129,44 @@ class _LanguageSelectionState extends State<LanguageSelection> {
               ),
             ),
 
-            // Continue Button
-            if (_selectedLanguage != null)
-              Container(
-                padding: EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: Offset(0, -5),
+            // ── Continue Button ────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              color: Colors.white,
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveAndContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
-                ),
-                child: Container(
-                  width: double.infinity,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF4A90E2), Color(0xFF50C878)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFF4A90E2).withOpacity(0.4),
-                        blurRadius: 15,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
+                    elevation: 4,
+                    shadowColor: primaryColor.withOpacity(0.4),
                   ),
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : () => _saveAndContinue(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  child: _isLoading
+                      ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
                     ),
-                    child: _isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      _getContinueButtonText(),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: Colors.white,
-                      ),
+                  )
+                      : Text(
+                    _getContinueButtonText(),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -176,53 +177,53 @@ class _LanguageSelectionState extends State<LanguageSelection> {
     final isSelected = _selectedLanguage == language.code;
 
     return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedLanguage = language.code;
-        });
-      },
+      onTap: () => setState(() => _selectedLanguage = language.code),
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(20),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected
+              ? primaryColor.withOpacity(0.05)
+              : const Color(0xFFFAFBFC),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? Color(0xFF4A90E2) : Color(0xFFE0E0E0),
-            width: isSelected ? 3 : 2,
+            color: isSelected ? primaryColor : const Color(0xFFEDF0F3),
+            width: isSelected ? 2 : 1.5,
           ),
           boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: Color(0xFF4A90E2).withOpacity(0.2),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
+            BoxShadow(
+              color: isSelected
+                  ? primaryColor.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.02),
+              blurRadius: isSelected ? 12 : 6,
+              offset: Offset(0, isSelected ? 4 : 2),
+            ),
           ],
         ),
         child: Row(
           children: [
-            // Flag
+            // Flag container
             Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Color(0xFF4A90E2).withOpacity(0.1)
-                    : Color(0xFFF5F7FA),
-                borderRadius: BorderRadius.circular(12),
+                    ? primaryColor.withOpacity(0.1)
+                    : const Color(0xFFF5F7F9),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
                 child: Text(
                   language.flag,
-                  style: TextStyle(fontSize: 36),
+                  style: const TextStyle(fontSize: 30),
                 ),
               ),
             ),
-            SizedBox(width: 20),
-            // Language Names
+            const SizedBox(width: 18),
+            // Language name
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,36 +231,36 @@ class _LanguageSelectionState extends State<LanguageSelection> {
                   Text(
                     language.nativeName,
                     style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C3E50),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? primaryColor : textDark,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     language.name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF7F8C8D),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: textLight,
                     ),
                   ),
                 ],
               ),
             ),
-            // Selection Indicator
+            // Check circle
             Container(
-              width: 32,
-              height: 32,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: isSelected ? primaryColor : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? Color(0xFF4A90E2) : Color(0xFFBDC3C7),
+                  color: isSelected ? primaryColor : const Color(0xFFD1D5DB),
                   width: 2,
                 ),
-                color: isSelected ? Color(0xFF4A90E2) : Colors.transparent,
               ),
               child: isSelected
-                  ? Icon(Icons.check, color: Colors.white, size: 20)
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
                   : null,
             ),
           ],
@@ -270,85 +271,57 @@ class _LanguageSelectionState extends State<LanguageSelection> {
 
   String _getContinueButtonText() {
     switch (_selectedLanguage) {
-      case 'hi':
-        return 'जारी रखें';
-      case 'gu':
-        return 'ચાલુ રાખો';
-      default:
-        return 'CONTINUE';
+      case 'hi': return 'जारी रखें';
+      case 'gu': return 'ચાલુ રાખો';
+      default: return 'CONTINUE';
     }
   }
 
   Future<void> _saveAndContinue() async {
-    if (_selectedLanguage != null) {
-      setState(() {
-        _isLoading = true;
-      });
+    setState(() => _isLoading = true);
+    try {
+      final provider = Provider.of<LanguageProvider>(context, listen: false);
+      await provider.changeLanguage(_selectedLanguage);
 
-      try {
-        // Save language preference to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('selected_language', _selectedLanguage!);
-        await prefs.setBool('language_selected', true);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('language_selected', true);
 
-        // Set the locale in the app BEFORE navigation
-        ElderCareApp.setLocale(context, Locale(_selectedLanguage!));
+      if (!mounted) return;
 
-        // Small delay to let the locale change propagate
-        await Future.delayed(Duration(milliseconds: 300));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_getSuccessMessage()),
+          backgroundColor: primaryColor,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(milliseconds: 600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
 
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text(_getSuccessMessage()),
-                ],
-              ),
-              backgroundColor: Color(0xFF50C878),
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(milliseconds: 800),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          );
-        }
+      await Future.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
 
-        // Navigate to login after small delay
-        await Future.delayed(Duration(milliseconds: 500));
-
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving language preference'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (e) {
+      debugPrint('ERROR saving language: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   String _getSuccessMessage() {
     switch (_selectedLanguage) {
-      case 'hi':
-        return 'भाषा सहेजी गई!';
-      case 'gu':
-        return 'ભાષા સાચવી!';
-      default:
-        return 'Language saved!';
+      case 'hi': return 'भाषा सहेजी गई!';
+      case 'gu': return 'ભાષા સાચવી!';
+      default: return 'Language saved!';
     }
   }
 }

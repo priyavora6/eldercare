@@ -8,12 +8,10 @@ class AIChatProvider extends ChangeNotifier {
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String _currentProvider = 'gemini';
-  String? _errorMessage;
 
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
   String get currentProvider => _currentProvider;
-  String? get errorMessage => _errorMessage;
 
   void addMessage(ChatMessage message) {
     _messages.add(message);
@@ -39,7 +37,6 @@ class AIChatProvider extends ChangeNotifier {
     ));
 
     _isLoading = true;
-    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -56,11 +53,15 @@ class AIChatProvider extends ChangeNotifier {
         isUser: false,
         timestamp: DateTime.now(),
       ));
-
-      _isLoading = false;
-      notifyListeners();
     } catch (e) {
-      _errorMessage = e.toString();
+      // ADDED: Add an error message to the chat
+      addMessage(ChatMessage(
+        text: "I'm having trouble connecting right now. Please check your API keys and internet connection.",
+        isUser: false,
+        timestamp: DateTime.now(),
+        isError: true, // Mark this as an error message
+      ));
+    } finally {
       _isLoading = false;
       notifyListeners();
     }

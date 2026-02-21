@@ -1,9 +1,13 @@
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.eldercare">
+
+    <!-- Required to access the internet for AI services and other network requests -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="eldercare"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:name="${applicationName}">
         <activity
             android:name=".MainActivity"
             android:exported="true"

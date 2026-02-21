@@ -19,7 +19,7 @@ dependencies:
   firebase_core: ^2.27.1
   firebase_auth: ^4.17.9
   cloud_firestore: ^4.15.9
-  firebase_storage: ^11.6.0       # ✅ ADD THIS - For image upload
+  firebase_storage: ^11.6.0
   firebase_messaging: ^14.7.10
 
   # State Management
@@ -28,7 +28,7 @@ dependencies:
   # Image & File
   image_picker: ^1.1.0
   flutter_image_compress: ^2.2.0
-  path: ^1.9.0                    # ✅ ADD THIS - For file path handling
+  path: ^1.9.0
 
   # Location
   geolocator: ^11.0.0
@@ -37,37 +37,41 @@ dependencies:
   flutter_local_notifications: ^17.0.0
 
   # HTTP
-  http: ^1.2.0                    # ✅ ADD THIS - For AI API calls
+  http: ^1.2.0
 
   # Utils
   intl: ^0.20.2
   shared_preferences: ^2.2.3
-  uuid: ^4.3.3                    # ✅ ADD THIS - For conversation IDs
+  uuid: ^4.3.3
   url_launcher: ^6.2.6
 
+  # Security
+  flutter_dotenv: ^5.1.0
+  translator: ^1.0.4+1
+  local_auth: ^2.2.0
+  google_sign_in: ^6.2.1
+
   # Optional (but recommended)
-  cached_network_image: ^3.3.1    # ✅ ADD THIS - For better image loading
-  flutter_svg: ^2.0.10            # ✅ ADD THIS - If you need SVG icons
+  cached_network_image: ^3.3.1
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
-  generate: true
 
   assets:
     - assets/
-    # OR list them individually:
-    # - assets/eldercare.png
-    # - assets/mu-logo.png
+    - .env
 
-  # Optional: Add custom fonts
-  # fonts:
-  #   - family: Roboto
-  #     fonts:
-  #       - asset: fonts/Roboto-Regular.ttf
-  #       - asset: fonts/Roboto-Bold.ttf
-  #         weight: 700
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/eldercare.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#F4F9F9"
+  adaptive_icon_foreground: "assets/eldercare.png"

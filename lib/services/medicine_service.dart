@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/medicine_model.dart';
 
 class MedicineService {
@@ -27,7 +28,7 @@ class MedicineService {
 
       String medicineId = medicineRef.id;
 
-      Map<String, dynamic> medicineData = {
+      await medicineRef.set({
         'medicineId': medicineId,
         'medicineName': medicineName,
         'dosage': dosage,
@@ -38,13 +39,11 @@ class MedicineService {
         'prescriptionImageUrl': prescriptionImageUrl ?? '',
         'notes': notes ?? '',
         'isActive': true,
+        'isTaken': false,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-      };
+      });
 
-      await medicineRef.set(medicineData);
-
-      // Log activity
       await _logActivity(
         userId: userId,
         activityType: 'medicineAdded',
@@ -54,7 +53,7 @@ class MedicineService {
 
       return medicineId;
     } catch (e) {
-      print('Error adding medicine: $e');
+      debugPrint('Error adding medicine: $e');
       throw Exception('Failed to add medicine');
     }
   }
@@ -69,19 +68,13 @@ class MedicineService {
           .doc(userId)
           .collection('medicines')
           .where('isActive', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      List<MedicineModel> medicines = [];
-
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        medicines.add(MedicineModel.fromJson(data));
-      }
-
-      return medicines;
+      return snapshot.docs.map((doc) {
+        return MedicineModel.fromJson(doc.data() as Map<String, dynamic>);
+      }).toList();
     } catch (e) {
-      print('Error getting medicines: $e');
+      debugPrint('Error getting medicines: $e');
       throw Exception('Failed to get medicines');
     }
   }
@@ -91,8 +84,7 @@ class MedicineService {
   // ============================================
   Future<List<MedicineModel>> getActiveMedicines(String userId) async {
     try {
-      DateTime now = DateTime.now();
-
+      final now = DateTime.now();
       QuerySnapshot snapshot = await _firestore
           .collection('users')
           .doc(userId)
@@ -101,20 +93,15 @@ class MedicineService {
           .get();
 
       List<MedicineModel> medicines = [];
-
       for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        MedicineModel medicine = MedicineModel.fromJson(data);
-
-        // Check if medicine is still valid (not expired)
+        final medicine = MedicineModel.fromJson(doc.data() as Map<String, dynamic>);
         if (medicine.endDate == null || medicine.endDate!.isAfter(now)) {
           medicines.add(medicine);
         }
       }
-
       return medicines;
     } catch (e) {
-      print('Error getting active medicines: $e');
+      debugPrint('Error getting active medicines: $e');
       throw Exception('Failed to get active medicines');
     }
   }
@@ -135,13 +122,11 @@ class MedicineService {
           .get();
 
       if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        return MedicineModel.fromJson(data);
+        return MedicineModel.fromJson(doc.data() as Map<String, dynamic>);
       }
-
       return null;
     } catch (e) {
-      print('Error getting medicine by ID: $e');
+      debugPrint('Error getting medicine by ID: $e');
       return null;
     }
   }
@@ -156,7 +141,6 @@ class MedicineService {
   }) async {
     try {
       updates['updatedAt'] = FieldValue.serverTimestamp();
-
       await _firestore
           .collection('users')
           .doc(userId)
@@ -164,7 +148,6 @@ class MedicineService {
           .doc(medicineId)
           .update(updates);
 
-      // Log activity
       await _logActivity(
         userId: userId,
         activityType: 'medicineUpdated',
@@ -172,7 +155,7 @@ class MedicineService {
         metadata: {'medicineId': medicineId},
       );
     } catch (e) {
-      print('Error updating medicine: $e');
+      debugPrint('Error updating medicine: $e');
       throw Exception('Failed to update medicine');
     }
   }
@@ -192,7 +175,6 @@ class MedicineService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      // Log activity
       await _logActivity(
         userId: userId,
         activityType: 'medicineDeleted',
@@ -200,65 +182,77 @@ class MedicineService {
         metadata: {'medicineId': medicineId},
       );
     } catch (e) {
-      print('Error deleting medicine: $e');
+      debugPrint('Error deleting medicine: $e');
       throw Exception('Failed to delete medicine');
     }
   }
 
   // ============================================
-  // GET TODAY'S MEDICINES
+  // GET TODAY'S MEDICINES — FIX: marks isTaken correctly
   // ============================================
   Future<List<MedicineModel>> getTodaysMedicines(String userId) async {
     try {
-      DateTime now = DateTime.now();
-      String currentHour = '${now.hour.toString().padLeft(2, '0')}:00';
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-      QuerySnapshot snapshot = await _firestore
+      // Step 1: Get all active medicines
+      final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('medicines')
           .where('isActive', isEqualTo: true)
           .get();
 
-      List<MedicineModel> todaysMedicines = [];
+      // Step 2: Get today's taken log
+      final logSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('medicineLog')
+          .where('status', isEqualTo: 'taken')
+          .where('scheduledTime',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('scheduledTime',
+          isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .get();
 
+      // Step 3: Build set of taken medicine IDs today
+      final takenIds = logSnapshot.docs
+          .map((doc) => (doc.data())['medicineId'] as String)
+          .toSet();
+
+      // Step 4: Build medicine list and mark isTaken
+      final List<MedicineModel> todaysMedicines = [];
       for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        MedicineModel medicine = MedicineModel.fromJson(data);
-
-        // Check if medicine should be taken today
-        bool shouldTakeToday = _shouldTakeMedicineToday(medicine, now);
-
-        if (shouldTakeToday) {
+        final medicine = MedicineModel.fromJson(doc.data() as Map<String, dynamic>);
+        if (_shouldTakeMedicineToday(medicine, now)) {
+          medicine.isTaken = takenIds.contains(medicine.medicineId);
           todaysMedicines.add(medicine);
         }
       }
 
+      // Sort: not taken first, taken last
+      todaysMedicines.sort((a, b) {
+        if (a.isTaken == b.isTaken) return 0;
+        return (a.isTaken == true) ? 1 : -1;
+      });
+
       return todaysMedicines;
     } catch (e) {
-      print('Error getting today\'s medicines: $e');
+      debugPrint('Error getting today\'s medicines: $e');
       throw Exception('Failed to get today\'s medicines');
     }
   }
 
-  // Helper: Check if medicine should be taken today
   bool _shouldTakeMedicineToday(MedicineModel medicine, DateTime today) {
-    // Check if medicine is still valid
     if (medicine.endDate != null && medicine.endDate!.isBefore(today)) {
       return false;
     }
-
-    // Check frequency
     switch (medicine.frequency.toLowerCase()) {
-      case 'daily':
-        return true;
-      case 'weekly':
-      // Check if today is the scheduled day (you can implement specific logic)
-        return true;
-      case 'asneeded':
-        return false; // Only when user requests
-      default:
-        return true;
+      case 'daily': return true;
+      case 'weekly': return true;
+      case 'asneeded': return false;
+      default: return true;
     }
   }
 
@@ -277,12 +271,6 @@ class MedicineService {
           .doc(userId)
           .collection('medicineLog')
           .add({
-        'logId': _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('medicineLog')
-            .doc()
-            .id,
         'medicineId': medicineId,
         'medicineName': medicineName,
         'scheduledTime': Timestamp.fromDate(scheduledTime),
@@ -293,7 +281,6 @@ class MedicineService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Log activity
       await _logActivity(
         userId: userId,
         activityType: 'medicineTaken',
@@ -301,7 +288,7 @@ class MedicineService {
         metadata: {'medicineId': medicineId},
       );
     } catch (e) {
-      print('Error logging medicine taken: $e');
+      debugPrint('Error logging medicine taken: $e');
       throw Exception('Failed to log medicine taken');
     }
   }
@@ -321,26 +308,17 @@ class MedicineService {
           .doc(userId)
           .collection('medicineLog')
           .add({
-        'logId': _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('medicineLog')
-            .doc()
-            .id,
         'medicineId': medicineId,
         'medicineName': medicineName,
         'scheduledTime': Timestamp.fromDate(scheduledTime),
         'takenAt': null,
         'status': 'skipped',
         'notificationSent': true,
-        'familyAlertSent': true, // Alert family when skipped
+        'familyAlertSent': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Send notification to family members
       await _notifyFamilyMedicineMissed(userId, medicineName);
-
-      // Log activity
       await _logActivity(
         userId: userId,
         activityType: 'medicineSkipped',
@@ -348,7 +326,7 @@ class MedicineService {
         metadata: {'medicineId': medicineId},
       );
     } catch (e) {
-      print('Error logging medicine skipped: $e');
+      debugPrint('Error logging medicine skipped: $e');
       throw Exception('Failed to log medicine skipped');
     }
   }
@@ -368,12 +346,6 @@ class MedicineService {
           .doc(userId)
           .collection('medicineLog')
           .add({
-        'logId': _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('medicineLog')
-            .doc()
-            .id,
         'medicineId': medicineId,
         'medicineName': medicineName,
         'scheduledTime': Timestamp.fromDate(scheduledTime),
@@ -384,10 +356,9 @@ class MedicineService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Send notification to family members
       await _notifyFamilyMedicineMissed(userId, medicineName);
     } catch (e) {
-      print('Error logging medicine missed: $e');
+      debugPrint('Error logging medicine missed: $e');
       throw Exception('Failed to log medicine missed');
     }
   }
@@ -406,22 +377,14 @@ class MedicineService {
           .collection('medicineLog')
           .orderBy('createdAt', descending: true);
 
-      if (limit != null) {
-        query = query.limit(limit);
-      }
+      if (limit != null) query = query.limit(limit);
 
-      QuerySnapshot snapshot = await query.get();
-
-      List<Map<String, dynamic>> logs = [];
-
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        logs.add(data);
-      }
-
-      return logs;
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
     } catch (e) {
-      print('Error getting medicine log: $e');
+      debugPrint('Error getting medicine log: $e');
       throw Exception('Failed to get medicine log');
     }
   }
@@ -431,37 +394,28 @@ class MedicineService {
   // ============================================
   Future<double> getMedicineAdherence({
     required String userId,
-    int days = 7, // Last 7 days
+    int days = 7,
   }) async {
     try {
-      DateTime now = DateTime.now();
-      DateTime startDate = now.subtract(Duration(days: days));
-
-      QuerySnapshot snapshot = await _firestore
+      final startDate = DateTime.now().subtract(Duration(days: days));
+      final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('medicineLog')
-          .where('scheduledTime', isGreaterThan: Timestamp.fromDate(startDate))
+          .where('scheduledTime',
+          isGreaterThan: Timestamp.fromDate(startDate))
           .get();
 
-      if (snapshot.docs.isEmpty) {
-        return 100.0; // No scheduled medicines
-      }
+      if (snapshot.docs.isEmpty) return 100.0;
 
-      int totalScheduled = snapshot.docs.length;
-      int taken = 0;
+      final total = snapshot.docs.length;
+      final taken = snapshot.docs
+          .where((doc) => (doc.data())['status'] == 'taken')
+          .length;
 
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        if (data['status'] == 'taken') {
-          taken++;
-        }
-      }
-
-      double adherence = (taken / totalScheduled) * 100;
-      return adherence;
+      return (taken / total) * 100;
     } catch (e) {
-      print('Error calculating adherence: $e');
+      debugPrint('Error calculating adherence: $e');
       return 0.0;
     }
   }
@@ -474,20 +428,19 @@ class MedicineService {
     int days = 7,
   }) async {
     try {
-      DateTime now = DateTime.now();
-      DateTime startDate = now.subtract(Duration(days: days));
-
-      QuerySnapshot snapshot = await _firestore
+      final startDate = DateTime.now().subtract(Duration(days: days));
+      final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('medicineLog')
-          .where('scheduledTime', isGreaterThan: Timestamp.fromDate(startDate))
+          .where('scheduledTime',
+          isGreaterThan: Timestamp.fromDate(startDate))
           .where('status', isEqualTo: 'missed')
           .get();
 
       return snapshot.docs.length;
     } catch (e) {
-      print('Error getting missed medicines count: $e');
+      debugPrint('Error getting missed medicines count: $e');
       return 0;
     }
   }
@@ -496,42 +449,31 @@ class MedicineService {
   // NOTIFY FAMILY - MEDICINE MISSED
   // ============================================
   Future<void> _notifyFamilyMedicineMissed(
-      String userId,
-      String medicineName,
-      ) async {
+      String userId, String medicineName) async {
     try {
-      // Get user data to find family members
-      DocumentSnapshot userDoc =
+      final userDoc =
       await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) return;
 
-      if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        List<String> familyMembers =
-        List<String>.from(userData['familyLinks']?['linkedFamilyMembers'] ?? []);
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final familyMembers = List<String>.from(
+          userData['familyLinks']?['linkedFamilyMembers'] ?? []);
 
-        // Send notification to each family member
-        for (String familyId in familyMembers) {
-          await _firestore.collection('notifications').add({
-            'notificationId': _firestore.collection('notifications').doc().id,
-            'recipientId': familyId,
-            'senderId': userId,
-            'type': 'medicine',
-            'title': 'Medicine Missed Alert',
-            'body': 'Your loved one missed their medicine: $medicineName',
-            'priority': 'high',
-            'sentAt': FieldValue.serverTimestamp(),
-            'readAt': null,
-            'isRead': false,
-            'actionUrl': null,
-            'metadata': {
-              'userId': userId,
-              'medicineName': medicineName,
-            },
-          });
-        }
+      for (String familyId in familyMembers) {
+        await _firestore.collection('notifications').add({
+          'recipientId': familyId,
+          'senderId': userId,
+          'type': 'medicine',
+          'title': 'Medicine Missed Alert',
+          'body': 'Your loved one missed their medicine: $medicineName',
+          'priority': 'high',
+          'sentAt': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'metadata': {'userId': userId, 'medicineName': medicineName},
+        });
       }
     } catch (e) {
-      print('Error notifying family: $e');
+      debugPrint('Error notifying family: $e');
     }
   }
 
@@ -550,12 +492,6 @@ class MedicineService {
           .doc(userId)
           .collection('activityLog')
           .add({
-        'activityId': _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('activityLog')
-            .doc()
-            .id,
         'activityType': activityType,
         'activityDescription': activityDescription,
         'timestamp': FieldValue.serverTimestamp(),
@@ -563,7 +499,7 @@ class MedicineService {
         'duration': null,
       });
     } catch (e) {
-      print('Error logging activity: $e');
+      debugPrint('Error logging activity: $e');
     }
   }
 
@@ -576,14 +512,10 @@ class MedicineService {
         .doc(userId)
         .collection('medicines')
         .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        Map<String, dynamic> data = doc.data();
-        return MedicineModel.fromJson(data);
-      }).toList();
-    });
+        .map((snapshot) => snapshot.docs
+        .map((doc) => MedicineModel.fromJson(doc.data()))
+        .toList());
   }
 
   // ============================================
@@ -594,28 +526,21 @@ class MedicineService {
     required String query,
   }) async {
     try {
-      QuerySnapshot snapshot = await _firestore
+      final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('medicines')
           .where('isActive', isEqualTo: true)
           .get();
 
-      List<MedicineModel> medicines = [];
-
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        MedicineModel medicine = MedicineModel.fromJson(data);
-
-        // Search in medicine name
-        if (medicine.medicineName.toLowerCase().contains(query.toLowerCase())) {
-          medicines.add(medicine);
-        }
-      }
-
-      return medicines;
+      return snapshot.docs
+          .map((doc) =>
+          MedicineModel.fromJson(doc.data() as Map<String, dynamic>))
+          .where((m) =>
+          m.medicineName.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     } catch (e) {
-      print('Error searching medicines: $e');
+      debugPrint('Error searching medicines: $e');
       throw Exception('Failed to search medicines');
     }
   }

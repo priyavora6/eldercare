@@ -1,60 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:eldercare/l10n/app_localizations.dart';
+import '../widgets/translated_text.dart';
 
 class ActivityLog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final List<Activity> _activities = [
       Activity(
         icon: Icons.medication,
-        title: l10n.tookMedicine,
-        subtitle: l10n.aspirin100mg,
+        title: 'Took Medicine',
+        subtitle: 'Aspirin (100mg)',
         time: '08:00 AM',
-        color: Color(0xFF50C878),
+        color: '0xFF50C878',
       ),
       Activity(
         icon: Icons.directions_walk,
-        title: l10n.morningWalk,
+        title: 'Morning Walk',
         subtitle: '1,234 steps',
         time: '09:30 AM',
-        color: Color(0xFF4A90E2),
+        color: '0xFF4A90E2',
       ),
       Activity(
         icon: Icons.favorite,
-        title: l10n.healthCheckIn,
-        subtitle: l10n.feelingGreat,
+        title: 'Health Check-in',
+        subtitle: 'Feeling great!',
         time: '10:00 AM',
-        color: Color(0xFF50C878),
+        color: '0xFF50C878',
       ),
       Activity(
         icon: Icons.medication,
-        title: l10n.tookMedicine,
-        subtitle: l10n.metformin500mg,
+        title: 'Took Medicine',
+        subtitle: 'Metformin (500mg)',
         time: '12:00 PM',
-        color: Color(0xFF50C878),
+        color: '0xFF50C878',
       ),
       Activity(
         icon: Icons.chat,
-        title: l10n.aiCompanionChat,
-        subtitle: l10n.listenedToMusic,
+        title: 'AI Companion Chat',
+        subtitle: 'Listened to music',
         time: '02:30 PM',
-        color: Color(0xFF9B59B6),
+        color: '0xFF9B59B6',
       ),
       Activity(
         icon: Icons.restaurant,
-        title: l10n.lunch,
-        subtitle: l10n.ateAHealthyMeal,
+        title: 'Lunch',
+        subtitle: 'Ate a healthy meal',
         time: '01:00 PM',
-        color: Color(0xFFE67E22),
+        color: '0xFFE67E22',
       ),
       Activity(
         icon: Icons.call,
-        title: l10n.videoCallWithFamily,
-        subtitle: l10n.talkedFor30Minutes,
+        title: 'Video Call with Family',
+        subtitle: 'Talked for 30 minutes',
         time: '04:00 PM',
-        color: Color(0xFF3498DB),
+        color: '0xFF3498DB',
       ),
     ];
 
@@ -62,14 +61,14 @@ class ActivityLog extends StatelessWidget {
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Color(0xFF4A90E2),
-        title: Text(l10n.activityLog, style: TextStyle(color: Colors.white)),
+        title: TranslatedText('Activity Log', style: TextStyle(color: Colors.white)),
         actions: [
-          IconButton(icon: Icon(Icons.calendar_today, color: Colors.white), onPressed: () => _showDatePicker(context, l10n)),
+          IconButton(icon: Icon(Icons.calendar_today, color: Colors.white), onPressed: () => _showDatePicker(context)),
         ],
       ),
       body: Column(
         children: [
-          _buildSummaryCard(l10n),
+          _buildSummaryCard(),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.all(16),
@@ -82,7 +81,7 @@ class ActivityLog extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCard(AppLocalizations l10n) {
+  Widget _buildSummaryCard() {
     return Container(
       margin: EdgeInsets.all(16),
       padding: EdgeInsets.all(20),
@@ -94,14 +93,14 @@ class ActivityLog extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.todaysSummary, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+          TranslatedText('Today\'s Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
           SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildSummaryItem(icon: Icons.directions_walk, value: '1,234', label: l10n.steps, color: Color(0xFF4A90E2)),
-              _buildSummaryItem(icon: Icons.medication, value: '2/3', label: l10n.medicines, color: Color(0xFF50C878)),
-              _buildSummaryItem(icon: Icons.bedtime, value: '7h', label: l10n.sleep, color: Color(0xFF9B59B6)),
+              _buildSummaryItem(icon: Icons.directions_walk, value: '1,234', label: 'Steps', color: Color(0xFF4A90E2)),
+              _buildSummaryItem(icon: Icons.medication, value: '2/3', label: 'Medicines', color: Color(0xFF50C878)),
+              _buildSummaryItem(icon: Icons.bedtime, value: '7h', label: 'Sleep', color: Color(0xFF9B59B6)),
             ],
           ),
         ],
@@ -115,12 +114,13 @@ class ActivityLog extends StatelessWidget {
         Icon(icon, size: 36, color: color),
         SizedBox(height: 8),
         Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
-        Text(label, style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
+        TranslatedText(label, style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
       ],
     );
   }
 
   Widget _buildActivityItem(Activity activity) {
+    final activityColor = Color(int.parse(activity.color));
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(16),
@@ -133,17 +133,17 @@ class ActivityLog extends StatelessWidget {
         children: [
           Container(
             padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(color: activity.color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: Icon(activity.icon, size: 28, color: activity.color),
+            decoration: BoxDecoration(color: activityColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(activity.icon, size: 28, color: activityColor),
           ),
           SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(activity.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+                TranslatedText(activity.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
                 SizedBox(height: 4),
-                Text(activity.subtitle, style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
+                TranslatedText(activity.subtitle, style: TextStyle(fontSize: 14, color: Color(0xFF7F8C8D))),
               ],
             ),
           ),
@@ -153,10 +153,10 @@ class ActivityLog extends StatelessWidget {
     );
   }
 
-  void _showDatePicker(BuildContext context, AppLocalizations l10n) async {
+  void _showDatePicker(BuildContext context) async {
     final DateTime? picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now());
     if (picked != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.viewingActivitiesFor(DateFormat('MMM dd, yyyy').format(picked))), backgroundColor: Color(0xFF4A90E2)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Viewing activities for ${DateFormat('MMM dd, yyyy').format(picked)}'), backgroundColor: Color(0xFF4A90E2)));
     }
   }
 }
@@ -166,7 +166,7 @@ class Activity {
   final String title;
   final String subtitle;
   final String time;
-  final Color color;
+  final String color;
 
   Activity({required this.icon, required this.title, required this.subtitle, required this.time, required this.color});
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 
 class VideoCall extends StatelessWidget {
   @override
@@ -12,7 +13,7 @@ class VideoCall extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Video Call with Priya', style: TextStyle(color: Colors.white)),
+        title: TranslatedText('Video Call with Priya', style: TextStyle(color: Colors.white)),
       ),
       body: Stack(
         children: [

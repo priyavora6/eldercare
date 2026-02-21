@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 
 class ProfileScreen extends StatelessWidget {
   @override
@@ -7,7 +8,7 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Profile'),
+        title: TranslatedText('Profile'),
         actions: [
           IconButton(
             icon: Icon(Icons.edit, color: Colors.white),
@@ -67,7 +68,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(
+    return TranslatedText(
       title,
       style: TextStyle(
         fontSize: 20,
@@ -134,7 +135,7 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Icon(icon, color: Color(0xFF4A90E2), size: 24),
           SizedBox(width: 16),
-          Text(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2C3E50))),
+          TranslatedText(label, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2C3E50))),
           Spacer(),
           Text(value, style: TextStyle(fontSize: 16, color: Color(0xFF7F8C8D))),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 
 class HealthReports extends StatelessWidget {
   @override
@@ -6,10 +7,10 @@ class HealthReports extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Health Reports'),
+        title: TranslatedText('Health Reports'),
       ),
       body: Center(
-        child: Text('Health Reports Screen'),
+        child: TranslatedText('Health Reports Screen'),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 
 class ActivityTimeline extends StatelessWidget {
   final List<Activity> _activities = [
@@ -60,7 +61,7 @@ class ActivityTimeline extends StatelessWidget {
       backgroundColor: Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Color(0xFF4A90E2),
-        title: Text('Activity Timeline', style: TextStyle(color: Colors.white)),
+        title: TranslatedText('Activity Timeline', style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             icon: Icon(Icons.calendar_today, color: Colors.white),
@@ -110,7 +111,7 @@ class ActivityTimeline extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                TranslatedText(
                   activity.title,
                   style: TextStyle(
                     fontSize: 16,
@@ -119,7 +120,7 @@ class ActivityTimeline extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 4),
-                Text(
+                TranslatedText(
                   activity.subtitle,
                   style: TextStyle(
                     fontSize: 14,
@@ -152,7 +153,7 @@ class ActivityTimeline extends StatelessWidget {
     if (picked != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Viewing activities for ${DateFormat('MMM dd, yyyy').format(picked)}'),
+          content: TranslatedText('Viewing activities for ${DateFormat('MMM dd, yyyy').format(picked)}'),
           backgroundColor: Color(0xFF4A90E2),
         ),
       );

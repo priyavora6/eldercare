@@ -1,19 +1,45 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<firebase_auth.User?> get authStateChanges => _auth.authStateChanges();
 
   Future<UserModel> getUserData(String uid) async {
     DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
     return UserModel.fromFirestore(doc.data() as Map<String, dynamic>);
+  }
+
+  Future<UserModel> findOrCreateUser(firebase_auth.User user) async {
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      return UserModel.fromFirestore(doc.data()!);
+    } else {
+      final newUser = UserModel(
+        accountInfo: AccountInfo(
+          userId: user.uid,
+          email: user.email ?? '',
+          userType: 'Elderly', // Default to Elderly for Google Sign-In
+        ),
+        personalInfo: PersonalInfo(
+          fullName: user.displayName ?? 'User',
+          dateOfBirth: DateTime.now(), // Placeholder, consider asking for this
+          gender: 'Other', // Placeholder
+          profileImageUrl: user.photoURL,
+        ),
+        contactInfo: ContactInfo(phoneNumber: user.phoneNumber ?? '', address: {}),
+        healthInfo: HealthInfo(allergies: [], medicalHistory: 'N/A'),
+      );
+      await _firestore.collection('users').doc(user.uid).set(newUser.toFirestore());
+      return newUser;
+    }
   }
 
   Future<UserModel> signUpWithEmail({
@@ -29,11 +55,9 @@ class AuthService {
     String? relationshipType,
     String? bloodGroup,
   }) async {
-    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    User? user = userCredential.user;
+    firebase_auth.UserCredential userCredential =
+    await _auth.createUserWithEmailAndPassword(email: email, password: password);
+    firebase_auth.User? user = userCredential.user;
 
     if (user != null) {
       String? profileImageUrl;
@@ -42,11 +66,7 @@ class AuthService {
       }
 
       UserModel newUser = UserModel(
-        accountInfo: AccountInfo(
-          userId: user.uid,
-          email: email,
-          userType: userType,
-        ),
+        accountInfo: AccountInfo(userId: user.uid, email: email, userType: userType),
         personalInfo: PersonalInfo(
           fullName: fullName,
           dateOfBirth: dateOfBirth,
@@ -56,10 +76,7 @@ class AuthService {
         contactInfo: ContactInfo(phoneNumber: phoneNumber, address: {}),
         healthInfo: HealthInfo(bloodGroup: bloodGroup, allergies: [], medicalHistory: 'N/A'),
         familyLink: userType == 'Family'
-            ? FamilyLink(
-                linkedElderlyId: linkedElderlyId,
-                relationshipType: relationshipType,
-              )
+            ? FamilyLink(linkedElderlyId: linkedElderlyId, relationshipType: relationshipType)
             : null,
       );
 
@@ -67,6 +84,29 @@ class AuthService {
       return newUser;
     }
     throw Exception('Sign up failed');
+  }
+
+  Future<UserModel> loginWithEmail({required String email, required String password}) async {
+    firebase_auth.UserCredential userCredential =
+    await _auth.signInWithEmailAndPassword(email: email, password: password);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_email', email);
+    await prefs.setString('saved_password', password);
+
+    return await getUserData(userCredential.user!.uid);
+  }
+
+  Future<UserModel?> biometricLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email');
+      final savedPassword = prefs.getString('saved_password');
+      if (savedEmail == null || savedPassword == null) return null;
+      return await loginWithEmail(email: savedEmail, password: savedPassword);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<void> updateUserProfile({
@@ -94,19 +134,11 @@ class AuthService {
     }
   }
 
-  Future<UserModel> loginWithEmail({
-    required String email,
-    required String password,
-  }) async {
-    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    return await getUserData(userCredential.user!.uid);
-  }
-
   Future<void> logout() async {
     await _auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_email');
+    await prefs.remove('saved_password');
   }
 
   Future<String> _uploadProfileImage(String userId, File image) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eldercare/widgets/translated_text.dart';
 
 class OnboardingScreen extends StatefulWidget {
   @override
@@ -54,7 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     onPressed: () {
                       Navigator.pushReplacementNamed(context, '/home');
                     },
-                    child: Text(
+                    child: TranslatedText(
                       'SKIP',
                       style: TextStyle(
                         fontSize: 16,
@@ -135,7 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Text(
+                      child: TranslatedText(
                         'PREVIOUS',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
@@ -158,7 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
+                    child: TranslatedText(
                       'NEXT',
                       style: TextStyle(
                           fontSize: 16, fontWeight: FontWeight.bold),
@@ -197,7 +198,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           SizedBox(height: 48),
-          Text(
+          TranslatedText(
             page.title,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -207,7 +208,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           SizedBox(height: 24),
-          Text(
+          TranslatedText(
             page.description,
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -252,7 +253,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(
+        child: TranslatedText(
           text,
           style: TextStyle(
             fontSize: 20,

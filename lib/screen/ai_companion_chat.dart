@@ -1,4 +1,3 @@
-import 'package:eldercare/l10n/app_localizations.dart' show AppLocalizations;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -6,7 +5,7 @@ import '../provider/auth_provider.dart';
 import '../provider/ai_chat_provider.dart';
 import '../provider/language_provider.dart';
 import '../models/chat_message_model.dart';
-import 'package:eldercare/l10n/app_localizations.dart';
+import '../widgets/translated_text.dart';
 
 class AICompanionChat extends StatefulWidget {
   @override
@@ -16,64 +15,108 @@ class AICompanionChat extends StatefulWidget {
 class _AICompanionChatState extends State<AICompanionChat> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  String _conversationId = Uuid().v4();
-  String _conversationType = 'general';
+  final String _conversationId = Uuid().v4();
+  final String _conversationType = 'general';
+
+  late final AuthProvider _authProvider;
+  String _hintText = 'Type your message';
+
+  @override
+  void initState() {
+    super.initState();
+    _authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _translateHint();
+  }
+
+  Future<void> _translateHint() async {
+    final langProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final translatedHint = await langProvider.translate('Type your message');
+    if (mounted) {
+      setState(() {
+        _hintText = translatedHint;
+      });
+    }
+  }
+
+  void _sendMessage() {
+    if (_messageController.text.trim().isEmpty) return;
+    if (_authProvider.currentUserId == null) return;
+
+    Provider.of<AIChatProvider>(context, listen: false).sendMessage(
+      userId: _authProvider.currentUserId!,
+      message: _messageController.text.trim(),
+      conversationId: _conversationId,
+      conversationType: _conversationType,
+    );
+
+    _messageController.clear();
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final authProvider = Provider.of<AuthProvider>(context);
-    final chatProvider = Provider.of<AIChatProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.aiCompanion),
+        title: TranslatedText('AI Companion'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (provider) {
-              chatProvider.setAIProvider(provider);
+              Provider.of<AIChatProvider>(context, listen: false).setAIProvider(provider);
             },
             itemBuilder: (context) => [
-              PopupMenuItem(value: 'gemini', child: Text('Gemini')),
-              PopupMenuItem(value: 'huggingface', child: Text('Hugging Face')),
-              PopupMenuItem(value: 'cohere', child: Text('Cohere')),
+              const PopupMenuItem(value: 'gemini', child: Text('Gemini')),
+              const PopupMenuItem(value: 'huggingface', child: Text('Hugging Face')),
+              const PopupMenuItem(value: 'cohere', child: Text('Cohere')),
             ],
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: chatProvider.messages.length,
-              itemBuilder: (context, index) {
-                final message = chatProvider.messages[index];
-                return _buildMessageBubble(message);
-              },
-            ),
-          ),
-          _buildInputArea(context, authProvider, chatProvider, l10n),
-        ],
+      body: Consumer<AIChatProvider>(
+        builder: (context, chatProvider, child) {
+          _scrollToBottom();
+
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  itemCount: chatProvider.messages.length,
+                  itemBuilder: (context, index) {
+                    final message = chatProvider.messages[index];
+                    return _buildMessageBubble(message);
+                  },
+                ),
+              ),
+              _buildInputArea(chatProvider),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildInputArea(
-      BuildContext context,
-      AuthProvider authProvider,
-      AIChatProvider chatProvider,
-      AppLocalizations l10n,
-      ) {
+  Widget _buildInputArea(AIChatProvider chatProvider) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
-                hintText: l10n.typeYourMessage,
+                hintText: _hintText,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -81,48 +124,43 @@ class _AICompanionChatState extends State<AICompanionChat> {
               enabled: !chatProvider.isLoading,
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           ElevatedButton(
-            onPressed: chatProvider.isLoading
-                ? null
-                : () => _sendMessage(authProvider, chatProvider),
+            onPressed: chatProvider.isLoading ? null : _sendMessage,
             child: chatProvider.isLoading
-                ? CircularProgressIndicator()
-                : Icon(Icons.send),
+                ? const SizedBox(
+                    width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.send),
           ),
         ],
       ),
     );
   }
 
-  void _sendMessage(AuthProvider authProvider, AIChatProvider chatProvider) {
-    if (_messageController.text.isEmpty) return;
-    if (authProvider.currentUserId == null) return;
-
-    chatProvider.sendMessage(
-      userId: authProvider.currentUserId!,
-      message: _messageController.text,
-      conversationId: _conversationId,
-      conversationType: _conversationType,
-    );
-
-    _messageController.clear();
-  }
-
   Widget _buildMessageBubble(ChatMessage message) {
+    // ADDED: Special styling for error messages
+    final bool isError = message.isError;
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.all(8),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: message.isUser ? Colors.blue : Colors.grey[300],
+          color: isError
+              ? Colors.red[100]
+              : message.isUser
+                  ? Colors.blue
+                  : Colors.grey[300],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           message.text,
           style: TextStyle(
-            color: message.isUser ? Colors.white : Colors.black,
+            color: isError
+                ? Colors.red[900]
+                : message.isUser
+                    ? Colors.white
+                    : Colors.black,
           ),
         ),
       ),
@@ -131,12 +169,9 @@ class _AICompanionChatState extends State<AICompanionChat> {
 
   @override
   void dispose() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final chatProvider = Provider.of<AIChatProvider>(context, listen: false);
-
-    if (authProvider.currentUserId != null) {
-      chatProvider.endConversation(
-        authProvider.currentUserId!,
+    if (_authProvider.currentUserId != null) {
+      Provider.of<AIChatProvider>(context, listen: false).endConversation(
+        _authProvider.currentUserId!,
         _conversationId,
       );
     }

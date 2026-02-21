@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/emergency_contact_model.dart';
-import '../models/emergency_alert_model.dart';
+import '../models/contact_model.dart';
 import 'notification_service.dart';
 
 class EmergencyService {
@@ -16,64 +15,47 @@ class EmergencyService {
     bool isPrimary = false,
   }) async {
     try {
-      final contact = EmergencyContact(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: userId,
+      final contact = Contact(
         name: name,
-        phoneNumber: phoneNumber,
+        phone: phoneNumber,
         relationship: relationship,
         isPrimary: isPrimary,
-        createdAt: DateTime.now(),
       );
 
       await _firestore
           .collection('users')
           .doc(userId)
-          .collection('emergency_contacts')
-          .doc(contact.id)
-          .set(contact.toJson());
+          .collection('contacts')
+          .add(contact.toFirestore());
     } catch (e) {
       throw Exception('Failed to add emergency contact: $e');
     }
   }
 
   // Get all emergency contacts
-  Stream<List<EmergencyContact>> getEmergencyContacts(String userId) {
+  Stream<List<Contact>> getEmergencyContacts(String userId) {
     return _firestore
         .collection('users')
         .doc(userId)
-        .collection('emergency_contacts')
-        .orderBy('isPrimary', descending: true)
+        .collection('contacts')
         .snapshots()
         .map((snapshot) => snapshot.docs
-        .map((doc) =>
-        EmergencyContact.fromJson(doc.data() as Map<String, dynamic>))
-        .toList());
+            .map((doc) => Contact.fromFirestore(doc))
+            .toList());
   }
 
   // Update emergency contact
   Future<void> updateEmergencyContact({
     required String userId,
-    required String contactId,
-    String? name,
-    String? phoneNumber,
-    String? relationship,
-    bool? isPrimary,
+    required Contact contact,
   }) async {
     try {
-      Map<String, dynamic> updates = {};
-      if (name != null) updates['name'] = name;
-      if (phoneNumber != null) updates['phoneNumber'] = phoneNumber;
-      if (relationship != null) updates['relationship'] = relationship;
-      if (isPrimary != null) updates['isPrimary'] = isPrimary;
-      updates['updatedAt'] = FieldValue.serverTimestamp();
-
       await _firestore
           .collection('users')
           .doc(userId)
-          .collection('emergency_contacts')
-          .doc(contactId)
-          .update(updates);
+          .collection('contacts')
+          .doc(contact.id)
+          .update(contact.toFirestore());
     } catch (e) {
       throw Exception('Failed to update emergency contact: $e');
     }
@@ -85,7 +67,7 @@ class EmergencyService {
       await _firestore
           .collection('users')
           .doc(userId)
-          .collection('emergency_contacts')
+          .collection('contacts')
           .doc(contactId)
           .delete();
     } catch (e) {
@@ -102,44 +84,24 @@ class EmergencyService {
     String? message,
   }) async {
     try {
-      // Create alert record
-      final alert = EmergencyAlert(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: userId,
-        userName: userName,
-        latitude: latitude,
-        longitude: longitude,
-        message: message ?? 'Emergency alert triggered!',
-        timestamp: DateTime.now(),
-        isResolved: false,
-      );
-
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('emergency_alerts')
-          .doc(alert.id)
-          .set(alert.toJson());
-
       // Get all emergency contacts
       final contactsSnapshot = await _firestore
           .collection('users')
           .doc(userId)
-          .collection('emergency_contacts')
+          .collection('contacts')
           .get();
 
       // Send notifications to all emergency contacts
       for (var doc in contactsSnapshot.docs) {
-        final contact =
-        EmergencyContact.fromJson(doc.data() as Map<String, dynamic>);
+        final contact = Contact.fromFirestore(doc);
 
         // Send SMS/notification to emergency contact
         await _notificationService.sendEmergencyNotification(
-          contactPhone: contact.phoneNumber,
+          contactPhone: contact.phone,
           userName: userName,
           latitude: latitude,
           longitude: longitude,
-          message: alert.message,
+          message: message ?? 'Emergency alert triggered!',
         );
       }
 
@@ -154,38 +116,14 @@ class EmergencyService {
   }
 
   // Resolve emergency alert
-  Future<void> resolveEmergencyAlert(String userId, String alertId) async {
+  Future<void> resolveEmergencyAlert(String userId) async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('emergency_alerts')
-          .doc(alertId)
-          .update({
-        'isResolved': true,
-        'resolvedAt': FieldValue.serverTimestamp(),
-      });
-
       await _firestore.collection('users').doc(userId).update({
         'inEmergency': false,
       });
     } catch (e) {
       throw Exception('Failed to resolve emergency alert: $e');
     }
-  }
-
-  // Get emergency alerts
-  Stream<List<EmergencyAlert>> getEmergencyAlerts(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('emergency_alerts')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) =>
-        EmergencyAlert.fromJson(doc.data() as Map<String, dynamic>))
-        .toList());
   }
 
   // Check if user is in emergency
