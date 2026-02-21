@@ -31,4 +31,7 @@ plugins {
 
 include ':app'
 
+<<<<<<< HEAD
 // A comment to force IDE sync.
+=======
+>>>>>>> 40295afed9e7944f637a08a14840084751c3c0b4
